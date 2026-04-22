@@ -31,13 +31,15 @@ public class ReviewRepository {
         return reviews;
     }
     public void guardar(CodeReview review) {
-        String sql = "INSERT INTO code_reviews (titulo, snippet, estado_salud, observacion) VALUES (?, ?, ?, ?)";
+        // CORREGIDO: He añadido 'autor' a la consulta INSERT para que refleje la persona que se acaba de loguear
+        String sql = "INSERT INTO code_reviews (titulo, autor, snippet, estado_salud, observacion) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, review.getTitulo());
-            pstmt.setString(2, review.getSnippet());
-            pstmt.setString(3, review.getEstadoSalud());
-            pstmt.setString(4, review.getObservacion());
+            pstmt.setString(2, review.getAutor());       // AÑADIDO!
+            pstmt.setString(3, review.getSnippet());
+            pstmt.setString(4, review.getEstadoSalud());
+            pstmt.setString(5, review.getObservacion());
             pstmt.executeUpdate();
         } catch (SQLException e) { e.printStackTrace(); }
     }

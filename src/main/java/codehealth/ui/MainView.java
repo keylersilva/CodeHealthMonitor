@@ -2,129 +2,132 @@ package codehealth.ui;
 
 import codehealth.model.CodeReview;
 import codehealth.repository.ReviewRepository;
+import codehealth.security.AuthService;
 import codehealth.service.HealthService;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.*;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.Lumo;
 
 @Route("")
-public class MainView extends VerticalLayout {
+@PageTitle("Panel Auditoría | CodeHealth")
+public class MainView extends VerticalLayout implements BeforeEnterObserver {
+
     private ReviewRepository repo = new ReviewRepository();
     private FlexLayout galeria = new FlexLayout();
+    private String autorActual; // Quien tiene sesión iniciada
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        // --- FILTRO DE SEGURIDAD ---
+        autorActual = AuthService.getUsuarioLogueado();
+        if (autorActual == null) {
+            // Si nadie inició sesión, expulsarlo a la vista de login
+            event.forwardTo(LoginView.class);
+        }
+    }
 
     public MainView() {
-        // 1. ACTIVAR EL TEMA OSCURO NATIVO DE VAADIN (Esto arregla las cajas de texto mágicamente)
         getElement().getThemeList().add(Lumo.DARK);
 
         setSizeFull();
         setPadding(false);
         setSpacing(false);
-        getStyle().set("background-color", "#0f172a"); // Fondo General Deep Night
-        getStyle().set("font-family", "'Inter', 'Segoe UI', Roboto, sans-serif");
+        getStyle().set("background-color", "#0f172a");
 
-        // --- HEADER ELEGANTE ---
+        // --- HEADER CON USERNAME Y LOGOUT ---
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
         header.setPadding(true);
+        header.setJustifyContentMode(JustifyContentMode.BETWEEN); // Para separar logo de la derecha
         header.getStyle()
                 .set("background", "rgba(15, 23, 42, 0.8)")
-                .set("backdrop-filter", "blur(10px)") // Efecto cristal moderno
+                .set("backdrop-filter", "blur(10px)")
                 .set("border-bottom", "1px solid #1e293b");
 
+        // Logo
+        HorizontalLayout logoWrapper = new HorizontalLayout();
+        logoWrapper.setAlignItems(Alignment.CENTER);
         H2 logo = new H2("CODEHEALTH");
-        logo.getStyle()
-                .set("color", "#818cf8")
-                .set("margin", "0")
-                .set("font-weight", "800")
-                .set("letter-spacing", "2px");
+        logo.getStyle().set("color", "#818cf8").set("margin", "0").set("font-weight", "800");
+        Span version = new Span("PRO 1.0");
+        version.getStyle().set("color", "#64748b").set("font-size", "12px").set("background", "#1e293b").set("padding", "4px").set("border-radius", "4px");
+        logoWrapper.add(logo, version);
 
-        Span version = new Span("MONITOR 1.0");
-        version.getStyle()
-                .set("color", "#64748b")
-                .set("font-size", "12px")
-                .set("font-weight", "600")
-                .set("letter-spacing", "1px")
-                .set("background", "#1e293b")
-                .set("padding", "4px 8px")
-                .set("border-radius", "6px");
+        // Opciones de Perfil (Botón Logout)
+        HorizontalLayout perfilInfo = new HorizontalLayout();
+        perfilInfo.setAlignItems(Alignment.CENTER);
 
-        header.add(logo, version);
-        header.setVerticalComponentAlignment(Alignment.CENTER, logo, version);
-        header.setAlignItems(Alignment.CENTER);
+        // Muestra dinámicamente quién inició sesión
+        Span lblUser = new Span("👨‍💻 " + AuthService.getUsuarioLogueado());
+        lblUser.getStyle().set("color", "#cbd5e1").set("font-weight", "600");
+
+        Button btnSalir = new Button("Cerrar Sesión", e -> {
+            AuthService.cerrarSesion();
+            UI.getCurrent().getPage().reload(); // Recarga la página y el filtro bloquea y echa al user.
+        });
+        btnSalir.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+
+        perfilInfo.add(lblUser, btnSalir);
+
+        header.add(logoWrapper, perfilInfo);
         add(header);
 
         HorizontalLayout body = new HorizontalLayout();
         body.setSizeFull();
         body.setSpacing(false);
 
-        // --- PANEL IZQUIERDO: FORMULARIO (Moderno) ---
+        // --- FORMULARIO IZQUIERDO ---
         VerticalLayout formulario = new VerticalLayout();
         formulario.setWidth("450px");
         formulario.setHeightFull();
-        formulario.getStyle()
-                .set("background", "#111827")
-                .set("border-right", "1px solid #1e293b");
+        formulario.getStyle().set("background", "#111827").set("border-right", "1px solid #1e293b");
         formulario.setPadding(true);
-        formulario.setSpacing(true);
 
         H4 formTitle = new H4("Nueva Auditoría");
-        formTitle.getStyle()
-                .set("color", "#f8fafc")
-                .set("margin-top", "10px")
-                .set("margin-bottom", "20px");
+        formTitle.getStyle().set("color", "#f8fafc").set("margin-top", "10px");
 
-        // --- CONFIGURACIÓN DE INPUTS (Nativos y limpios) ---
         TextField txtTitulo = new TextField("Título del Proyecto");
         txtTitulo.setWidthFull();
-        txtTitulo.setPlaceholder("Ej: Mi Clase POO");
-        txtTitulo.setClearButtonVisible(true); // Botón de limpiar "X" profesional
+        txtTitulo.setClearButtonVisible(true);
 
-        TextArea txtCodigo = new TextArea("Snippet de Código Java");
+        TextArea txtCodigo = new TextArea("Snippet de Código");
         txtCodigo.setHeight("350px");
         txtCodigo.setWidthFull();
-        txtCodigo.setPlaceholder("public class Ejemplo {\n    // Tu código aquí...\n}");
-        // Hacemos que parezca un editor de código real
-        txtCodigo.getStyle()
-                .set("font-family", "'JetBrains Mono', Consolas, 'Courier New', monospace")
-                .set("font-size", "13px");
+        txtCodigo.getStyle().set("font-family", "monospace");
 
         Button btnAnalizar = new Button("ANALIZAR CÓDIGO", e -> {
             if(!txtCodigo.getValue().isEmpty()) {
                 String estado = HealthService.analizar(txtCodigo.getValue());
                 String obs = HealthService.generarObservacion(estado);
-                CodeReview nueva = new CodeReview(0, txtTitulo.getValue().isEmpty() ? "Sin Título" : txtTitulo.getValue(), "DonKeiler", txtCodigo.getValue(), estado, obs);
+                // Le pasamos dinámicamente el nombre de la sesión
+                CodeReview nueva = new CodeReview(0, txtTitulo.getValue().isEmpty() ? "Sin Título" : txtTitulo.getValue(), autorActual, txtCodigo.getValue(), estado, obs);
                 repo.guardar(nueva);
                 actualizarGaleria();
                 txtTitulo.clear();
                 txtCodigo.clear();
             }
         });
-
-        // Estilo de botón profesional
         btnAnalizar.setWidthFull();
-        btnAnalizar.addThemeVariants(ButtonVariant.LUMO_PRIMARY); // Tema principal nativo
-        btnAnalizar.getStyle()
-                .set("background", "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)")
-                .set("font-weight", "600")
-                .set("letter-spacing", "1px")
-                .set("margin-top", "15px")
-                .set("height", "45px");
+        btnAnalizar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        btnAnalizar.getStyle().set("background", "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)").set("height", "45px").set("margin-top", "15px");
 
         formulario.add(formTitle, txtTitulo, txtCodigo, btnAnalizar);
 
-        // --- PANEL DERECHO: GALERÍA (Elegante) ---
+        // --- GALERÍA DERECHA ---
         VerticalLayout scrollContainer = new VerticalLayout();
         scrollContainer.setSizeFull();
-        scrollContainer.getStyle()
-                .set("overflow-y", "auto")
-                .set("padding", "30px");
+        scrollContainer.getStyle().set("overflow-y", "auto").set("padding", "30px");
 
         H3 galeriaTitle = new H3("Historial de Análisis");
-        galeriaTitle.getStyle().set("color", "#f1f5f9").set("margin-top", "0");
+        galeriaTitle.getStyle().set("color", "#f1f5f9");
 
         galeria.setWidthFull();
         galeria.setFlexWrap(FlexLayout.FlexWrap.WRAP);
@@ -147,62 +150,24 @@ public class MainView extends VerticalLayout {
                     .set("background", "rgba(30, 41, 59, 0.7)")
                     .set("border", "1px solid #334155")
                     .set("border-radius", "12px")
-                    .set("padding", "20px")
-                    .set("transition", "all 0.3s ease")
-                    .set("cursor", "default");
+                    .set("padding", "20px");
 
-            // Indicador de Salud
-            String color;
-            String bgColor;
-            if ("Óptimo".equalsIgnoreCase(cr.getEstadoSalud())) {
-                color = "#4ade80"; // Verde moderno
-                bgColor = "rgba(74, 222, 128, 0.1)";
-            } else if ("Advertencia".equalsIgnoreCase(cr.getEstadoSalud())) {
-                color = "#fbbf24"; // Amarillo/Naranja
-                bgColor = "rgba(251, 191, 36, 0.1)";
-            } else {
-                color = "#f87171"; // Rojo
-                bgColor = "rgba(248, 113, 113, 0.1)";
-            }
-
+            // Insignia de Estado
+            String color = "Óptimo".equalsIgnoreCase(cr.getEstadoSalud()) ? "#4ade80" : "Advertencia".equalsIgnoreCase(cr.getEstadoSalud()) ? "#fbbf24" : "#f87171";
             Span badge = new Span(cr.getEstadoSalud().toUpperCase());
-            badge.getStyle()
-                    .set("background", bgColor)
-                    .set("color", color)
-                    .set("padding", "4px 12px")
-                    .set("border-radius", "20px")
-                    .set("font-size", "11px")
-                    .set("font-weight", "700")
-                    .set("letter-spacing", "0.5px")
-                    .set("border", "1px solid " + "rgba(255,255,255,0.1)");
+            badge.getStyle().set("color", color).set("background", color + "22").set("padding", "4px 10px").set("border-radius", "20px").set("font-size", "11px").set("font-weight", "bold");
 
-            H4 t = new H4(cr.getTitulo());
-            t.getStyle()
-                    .set("color", "#f8fafc")
-                    .set("margin", "15px 0 5px 0")
-                    .set("font-size", "18px");
+            H4 tituloInfo = new H4(cr.getTitulo());
+            tituloInfo.getStyle().set("color", "#f8fafc").set("margin", "10px 0 5px 0");
 
-            Paragraph p = new Paragraph(cr.getObservacion());
-            p.getStyle()
-                    .set("color", "#94a3b8")
-                    .set("font-size", "14px")
-                    .set("line-height", "1.5")
-                    .set("margin", "0");
+            // Quién lo creó (usando el campo Autor del model)
+            Span pAutor = new Span("Por: " + cr.getAutor());
+            pAutor.getStyle().set("color", "#475569").set("font-size", "11px");
 
-            card.add(badge, t, p);
+            Paragraph observacion = new Paragraph(cr.getObservacion());
+            observacion.getStyle().set("color", "#94a3b8").set("font-size", "14px").set("line-height", "1.5");
 
-            // Simular hover suave en Java (opcional pero le da toque premium)
-            card.getElement().addEventListener("mouseenter", e -> {
-                card.getStyle().set("transform", "translateY(-4px)");
-                card.getStyle().set("box-shadow", "0 10px 20px -5px rgba(0, 0, 0, 0.4)");
-                card.getStyle().set("border", "1px solid #475569");
-            });
-            card.getElement().addEventListener("mouseleave", e -> {
-                card.getStyle().set("transform", "translateY(0)");
-                card.getStyle().set("box-shadow", "none");
-                card.getStyle().set("border", "1px solid #334155");
-            });
-
+            card.add(badge, tituloInfo, pAutor, observacion);
             galeria.add(card);
         }
     }
