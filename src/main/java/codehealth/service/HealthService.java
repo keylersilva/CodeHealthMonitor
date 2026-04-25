@@ -5,7 +5,7 @@ public class HealthService {
     public static String analizar(String codigo) {
         String cleanCode = codigo.toLowerCase().replaceAll("\\s+", "");
 
-        // 1. Detección de Vulnerabilidades Críticas de Ciberseguridad y bloqueos
+
         if (cleanCode.contains("password=") || cleanCode.contains("clave=")
                 || cleanCode.contains("while(true)") || cleanCode.contains("catch(exceptione){}")) {
             return "Crítico";
@@ -20,7 +20,7 @@ public class HealthService {
         return "Óptimo";
     }
 
-    // Le hemos agregado el "codigo" como parámetro para evaluarlo dinámicamente
+
     public static String generarObservacion(String estado, String codigo) {
         if ("Óptimo".equalsIgnoreCase(estado)) {
             return "✅ ¡Excelente trabajo!\nEl código cumple con los estándares Clean Code de la industria. Sin fugas de memoria ni vulnerabilidades expuestas.";
@@ -30,7 +30,7 @@ public class HealthService {
         String cleanCode = codigo.toLowerCase().replaceAll("\\s+", "");
         String[] lineas = codigo.split("\n");
 
-        // Reglas Educativas Dinámicas
+
         if (cleanCode.contains("password=") || cleanCode.contains("clave=")) {
             obs.append("🚫 VULNERABILIDAD HARDCODING:\n- Problema: Tienes contraseñas o datos sensibles quemados directamente en el código.\n- Solución: Usa variables de entorno (.env) o el application.properties para inyectarlas.\n\n");
         }

@@ -49,7 +49,7 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         setSpacing(false);
         getStyle().set("background-color", "#0f172a");
 
-        // --- HEADER ---
+
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
         header.setPadding(true);
@@ -82,9 +82,9 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         body.setSizeFull();
         body.setSpacing(false);
 
-        // --- PANEL FORMULARIO IZQUIERDO ---
+
         VerticalLayout formulario = new VerticalLayout();
-        formulario.setWidth("480px"); // Ligeramente más grande para alojar la Zona Drag & Drop
+        formulario.setWidth("480px");
         formulario.setHeightFull();
         formulario.getStyle().set("background", "#111827").set("border-right", "1px solid #1e293b").set("overflow-y", "auto");
         formulario.setPadding(true);
@@ -92,10 +92,10 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         H4 formTitle = new H4("Central de Análisis Inteligente");
         formTitle.getStyle().set("color", "#f8fafc").set("margin-top", "5px");
 
-        // ZONA DRAG AND DROP - Carga de Archivos Reales .java
-        MemoryBuffer buffer = new MemoryBuffer(); // Zona de la memoria Ram donde subirá el archivo
+
+        MemoryBuffer buffer = new MemoryBuffer();
         Upload cargaArchivos = new Upload(buffer);
-        cargaArchivos.setAcceptedFileTypes(".java", ".txt"); // Restringe que le pasen basura
+        cargaArchivos.setAcceptedFileTypes(".java", ".txt");
         cargaArchivos.setDropLabel(new Span("Arrastra un archivo .java (O haz click)"));
         cargaArchivos.setWidthFull();
 
@@ -109,14 +109,14 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         txtCodigo.getStyle().set("font-family", "'JetBrains Mono', Consolas, monospace").set("font-size", "13px");
         txtCodigo.setPlaceholder("El código se insertará aquí automáticamente al soltar tu archivo .java...");
 
-        // Evento Mágico que "Lé y extrae" el texto del archivo a nuestra Pantalla
+
         cargaArchivos.addSucceededListener(e -> {
             try {
                 InputStream archivoFlujo = buffer.getInputStream();
-                // Lo convertimos del binario real a Cadena normal humana
+
                 String textoJavaLeido = new String(archivoFlujo.readAllBytes(), StandardCharsets.UTF_8);
-                txtCodigo.setValue(textoJavaLeido); // Llenamos la caja gorda negra!
-                txtTitulo.setValue("Análisis del módulo: " + e.getFileName()); // Pone de titulo "Analisis Module.java"
+                txtCodigo.setValue(textoJavaLeido);
+                txtTitulo.setValue("Análisis del módulo: " + e.getFileName());
                 Notification.show("Lectura Completa (I/O). Archivo Listo.", 3000, Notification.Position.TOP_END)
                         .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } catch (Exception ex) {
@@ -127,7 +127,7 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         Button btnAnalizar = new Button("Auditar Proyecto I/O", e -> {
             if(!txtCodigo.getValue().isEmpty()) {
                 String estado = HealthService.analizar(txtCodigo.getValue());
-                // Fijate que ahora mandamos las dos variables a 'generarObservacion'
+
                 String obs = HealthService.generarObservacion(estado, txtCodigo.getValue());
 
                 CodeReview nueva = new CodeReview(0, txtTitulo.getValue().isEmpty() ? "Inspección Directa" : txtTitulo.getValue(), autorActual, txtCodigo.getValue(), estado, obs);
@@ -135,7 +135,7 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
                 actualizarGaleria();
                 txtTitulo.clear();
                 txtCodigo.clear();
-                cargaArchivos.clearFileList(); // resetea el visual de Vaadin para soltar mas archivos
+                cargaArchivos.clearFileList();
 
                 Notification toast = Notification.show("Evaluado (Nivel: " + estado + ")", 4000, Notification.Position.TOP_END);
                 toast.addThemeVariants("Crítico".equals(estado) ? NotificationVariant.LUMO_ERROR : "Advertencia".equals(estado) ? NotificationVariant.LUMO_WARNING : NotificationVariant.LUMO_SUCCESS);
@@ -149,10 +149,10 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         btnAnalizar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnAnalizar.getStyle().set("background", "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)").set("height", "50px").set("margin-top", "10px").set("font-weight", "bold").set("font-size", "15px").set("letter-spacing", "1px").set("box-shadow", "0 4px 15px rgba(99, 102, 241, 0.4)");
 
-        // Observa como el 'cargaArchivos' (nuestro Vaadin Upload) se metio al final del layout
+
         formulario.add(formTitle, cargaArchivos, txtTitulo, txtCodigo, btnAnalizar);
 
-        // --- GALERÍA DERECHA ---
+
         VerticalLayout scrollContainer = new VerticalLayout();
         scrollContainer.setSizeFull();
         scrollContainer.getStyle().set("overflow-y", "auto").set("padding", "30px");
@@ -215,7 +215,7 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
 
             Div observacionWrapper = new Div();
             observacionWrapper.setText(cr.getObservacion());
-            // Pre-Wrap formatea el texto espectacular como de la terminal!
+
             observacionWrapper.getStyle().set("color", "#94a3b8").set("font-size", "13px").set("line-height", "1.5").set("margin-top", "15px").set("white-space", "pre-wrap").set("background", "rgba(0,0,0,0.1)").set("padding", "10px").set("border-left", "2px solid " + color).set("border-radius", "4px");
 
             Div bloqueDeCodigoHtml = new Div();

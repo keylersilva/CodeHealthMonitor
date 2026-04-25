@@ -11,7 +11,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.Lumo;
 
-@Route("login") // La ruta será localhost:8080/login
+@Route("login")
 @PageTitle("Ingreso | CodeHealth")
 public class LoginView extends VerticalLayout {
 
@@ -23,7 +23,7 @@ public class LoginView extends VerticalLayout {
         setJustifyContentMode(JustifyContentMode.CENTER);
         getStyle().set("background-color", "#0f172a");
 
-        // Tarjeta estilo cristal
+
         VerticalLayout card = new VerticalLayout();
         card.setWidth("400px");
         card.getStyle()
@@ -45,7 +45,7 @@ public class LoginView extends VerticalLayout {
         Paragraph subtitulo = new Paragraph("Autenticación de Auditores");
         subtitulo.getStyle().set("color", "#94a3b8").set("margin-bottom", "30px");
 
-        // Configurar formulario de login en español
+
         LoginForm loginForm = new LoginForm();
         LoginI18n i18n = LoginI18n.createDefault();
         i18n.getForm().setTitle("Acceder");
@@ -56,18 +56,18 @@ public class LoginView extends VerticalLayout {
         i18n.getErrorMessage().setMessage("Verifica que tus datos sean correctos.");
         loginForm.setI18n(i18n);
 
-        // Acción al intentar acceder
+
         loginForm.addLoginListener(e -> {
             boolean exitoso = AuthService.autenticar(e.getUsername(), e.getPassword());
             if (exitoso) {
-                // Redirige al Dashboard principal
+
                 UI.getCurrent().navigate(MainView.class);
             } else {
                 loginForm.setError(true);
             }
         });
 
-        // Tip de contraseña abajo del form
+
         Paragraph credencialesHint = new Paragraph("User: tu_nombre | Pass: admin123");
         credencialesHint.getStyle()
                 .set("color", "#64748b")
