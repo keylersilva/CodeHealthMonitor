@@ -2,129 +2,163 @@ package codehealth.ui;
 
 import codehealth.model.CodeReview;
 import codehealth.repository.ReviewRepository;
+import codehealth.security.AuthService;
 import codehealth.service.HealthService;
+
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.details.Details;
+import com.vaadin.flow.component.details.DetailsVariant;
 import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.*;
+import com.vaadin.flow.component.upload.Upload;
+import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.Lumo;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 @Route("")
-public class MainView extends VerticalLayout {
+@PageTitle("Panel Auditoría | CodeHealth")
+public class MainView extends VerticalLayout implements BeforeEnterObserver {
+
     private ReviewRepository repo = new ReviewRepository();
     private FlexLayout galeria = new FlexLayout();
+    private String autorActual;
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        autorActual = AuthService.getUsuarioLogueado();
+        if (autorActual == null) {
+            event.forwardTo(LoginView.class);
+        }
+    }
 
     public MainView() {
-        // 1. ACTIVAR EL TEMA OSCURO NATIVO DE VAADIN (Esto arregla las cajas de texto mágicamente)
         getElement().getThemeList().add(Lumo.DARK);
-
         setSizeFull();
         setPadding(false);
         setSpacing(false);
-        getStyle().set("background-color", "#0f172a"); // Fondo General Deep Night
-        getStyle().set("font-family", "'Inter', 'Segoe UI', Roboto, sans-serif");
+        getStyle().set("background-color", "#0f172a");
 
-        // --- HEADER ELEGANTE ---
+
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
         header.setPadding(true);
-        header.getStyle()
-                .set("background", "rgba(15, 23, 42, 0.8)")
-                .set("backdrop-filter", "blur(10px)") // Efecto cristal moderno
-                .set("border-bottom", "1px solid #1e293b");
+        header.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        header.getStyle().set("background", "rgba(15, 23, 42, 0.8)").set("border-bottom", "1px solid #1e293b");
 
+        HorizontalLayout logoWrapper = new HorizontalLayout();
+        logoWrapper.setAlignItems(Alignment.CENTER);
         H2 logo = new H2("CODEHEALTH");
-        logo.getStyle()
-                .set("color", "#818cf8")
-                .set("margin", "0")
-                .set("font-weight", "800")
-                .set("letter-spacing", "2px");
+        logo.getStyle().set("color", "#818cf8").set("margin", "0").set("font-weight", "800");
+        Span version = new Span("PRO V-EXPERT");
+        version.getStyle().set("color", "#64748b").set("font-size", "11px").set("background", "#1e293b").set("padding", "4px 8px").set("border-radius", "4px").set("margin-left", "15px").set("letter-spacing", "1px");
+        logoWrapper.add(logo, version);
 
-        Span version = new Span("MONITOR 1.0");
-        version.getStyle()
-                .set("color", "#64748b")
-                .set("font-size", "12px")
-                .set("font-weight", "600")
-                .set("letter-spacing", "1px")
-                .set("background", "#1e293b")
-                .set("padding", "4px 8px")
-                .set("border-radius", "6px");
+        HorizontalLayout perfilInfo = new HorizontalLayout();
+        perfilInfo.setAlignItems(Alignment.CENTER);
+        Span lblUser = new Span("👨‍💻 " + autorActual);
+        lblUser.getStyle().set("color", "#cbd5e1").set("font-weight", "600");
 
-        header.add(logo, version);
-        header.setVerticalComponentAlignment(Alignment.CENTER, logo, version);
-        header.setAlignItems(Alignment.CENTER);
+        Button btnSalir = new Button("Cerrar Sesión", e -> {
+            AuthService.cerrarSesion();
+            UI.getCurrent().getPage().reload();
+        });
+        btnSalir.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+        perfilInfo.add(lblUser, btnSalir);
+        header.add(logoWrapper, perfilInfo);
         add(header);
 
         HorizontalLayout body = new HorizontalLayout();
         body.setSizeFull();
         body.setSpacing(false);
 
-        // --- PANEL IZQUIERDO: FORMULARIO (Moderno) ---
+
         VerticalLayout formulario = new VerticalLayout();
-        formulario.setWidth("450px");
+        formulario.setWidth("480px");
         formulario.setHeightFull();
-        formulario.getStyle()
-                .set("background", "#111827")
-                .set("border-right", "1px solid #1e293b");
+        formulario.getStyle().set("background", "#111827").set("border-right", "1px solid #1e293b").set("overflow-y", "auto");
         formulario.setPadding(true);
-        formulario.setSpacing(true);
 
-        H4 formTitle = new H4("Nueva Auditoría");
-        formTitle.getStyle()
-                .set("color", "#f8fafc")
-                .set("margin-top", "10px")
-                .set("margin-bottom", "20px");
+        H4 formTitle = new H4("Central de Análisis Inteligente");
+        formTitle.getStyle().set("color", "#f8fafc").set("margin-top", "5px");
 
-        // --- CONFIGURACIÓN DE INPUTS (Nativos y limpios) ---
-        TextField txtTitulo = new TextField("Título del Proyecto");
+
+        MemoryBuffer buffer = new MemoryBuffer();
+        Upload cargaArchivos = new Upload(buffer);
+        cargaArchivos.setAcceptedFileTypes(".java", ".txt");
+        cargaArchivos.setDropLabel(new Span("Arrastra un archivo .java (O haz click)"));
+        cargaArchivos.setWidthFull();
+
+        TextField txtTitulo = new TextField("Título de Auditoría");
         txtTitulo.setWidthFull();
-        txtTitulo.setPlaceholder("Ej: Mi Clase POO");
-        txtTitulo.setClearButtonVisible(true); // Botón de limpiar "X" profesional
+        txtTitulo.setClearButtonVisible(true);
 
-        TextArea txtCodigo = new TextArea("Snippet de Código Java");
-        txtCodigo.setHeight("350px");
+        TextArea txtCodigo = new TextArea("Snippet / Source Code Java");
+        txtCodigo.setHeight("250px");
         txtCodigo.setWidthFull();
-        txtCodigo.setPlaceholder("public class Ejemplo {\n    // Tu código aquí...\n}");
-        // Hacemos que parezca un editor de código real
-        txtCodigo.getStyle()
-                .set("font-family", "'JetBrains Mono', Consolas, 'Courier New', monospace")
-                .set("font-size", "13px");
+        txtCodigo.getStyle().set("font-family", "'JetBrains Mono', Consolas, monospace").set("font-size", "13px");
+        txtCodigo.setPlaceholder("El código se insertará aquí automáticamente al soltar tu archivo .java...");
 
-        Button btnAnalizar = new Button("ANALIZAR CÓDIGO", e -> {
+
+        cargaArchivos.addSucceededListener(e -> {
+            try {
+                InputStream archivoFlujo = buffer.getInputStream();
+
+                String textoJavaLeido = new String(archivoFlujo.readAllBytes(), StandardCharsets.UTF_8);
+                txtCodigo.setValue(textoJavaLeido);
+                txtTitulo.setValue("Análisis del módulo: " + e.getFileName());
+                Notification.show("Lectura Completa (I/O). Archivo Listo.", 3000, Notification.Position.TOP_END)
+                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            } catch (Exception ex) {
+                Notification.show("Error en flujo Input Stream al leer archivo.").addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        });
+
+        Button btnAnalizar = new Button("Auditar Proyecto I/O", e -> {
             if(!txtCodigo.getValue().isEmpty()) {
                 String estado = HealthService.analizar(txtCodigo.getValue());
-                String obs = HealthService.generarObservacion(estado);
-                CodeReview nueva = new CodeReview(0, txtTitulo.getValue().isEmpty() ? "Sin Título" : txtTitulo.getValue(), "DonKeiler", txtCodigo.getValue(), estado, obs);
+
+                String obs = HealthService.generarObservacion(estado, txtCodigo.getValue());
+
+                CodeReview nueva = new CodeReview(0, txtTitulo.getValue().isEmpty() ? "Inspección Directa" : txtTitulo.getValue(), autorActual, txtCodigo.getValue(), estado, obs);
                 repo.guardar(nueva);
                 actualizarGaleria();
                 txtTitulo.clear();
                 txtCodigo.clear();
+                cargaArchivos.clearFileList();
+
+                Notification toast = Notification.show("Evaluado (Nivel: " + estado + ")", 4000, Notification.Position.TOP_END);
+                toast.addThemeVariants("Crítico".equals(estado) ? NotificationVariant.LUMO_ERROR : "Advertencia".equals(estado) ? NotificationVariant.LUMO_WARNING : NotificationVariant.LUMO_SUCCESS);
+            } else {
+                Notification error = Notification.show("Por favor, soltar archivo o pegar un script primero.");
+                error.addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
 
-        // Estilo de botón profesional
         btnAnalizar.setWidthFull();
-        btnAnalizar.addThemeVariants(ButtonVariant.LUMO_PRIMARY); // Tema principal nativo
-        btnAnalizar.getStyle()
-                .set("background", "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)")
-                .set("font-weight", "600")
-                .set("letter-spacing", "1px")
-                .set("margin-top", "15px")
-                .set("height", "45px");
+        btnAnalizar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        btnAnalizar.getStyle().set("background", "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)").set("height", "50px").set("margin-top", "10px").set("font-weight", "bold").set("font-size", "15px").set("letter-spacing", "1px").set("box-shadow", "0 4px 15px rgba(99, 102, 241, 0.4)");
 
-        formulario.add(formTitle, txtTitulo, txtCodigo, btnAnalizar);
 
-        // --- PANEL DERECHO: GALERÍA (Elegante) ---
+        formulario.add(formTitle, cargaArchivos, txtTitulo, txtCodigo, btnAnalizar);
+
+
         VerticalLayout scrollContainer = new VerticalLayout();
         scrollContainer.setSizeFull();
-        scrollContainer.getStyle()
-                .set("overflow-y", "auto")
-                .set("padding", "30px");
+        scrollContainer.getStyle().set("overflow-y", "auto").set("padding", "30px");
 
-        H3 galeriaTitle = new H3("Historial de Análisis");
-        galeriaTitle.getStyle().set("color", "#f1f5f9").set("margin-top", "0");
+        H3 galeriaTitle = new H3("Tus Auditorías");
+        galeriaTitle.getStyle().set("color", "#f1f5f9").set("margin-top", "0px");
 
         galeria.setWidthFull();
         galeria.setFlexWrap(FlexLayout.FlexWrap.WRAP);
@@ -142,67 +176,57 @@ public class MainView extends VerticalLayout {
         galeria.removeAll();
         for (CodeReview cr : repo.findAll()) {
             VerticalLayout card = new VerticalLayout();
-            card.setWidth("320px");
+            card.setWidth("380px");
             card.getStyle()
                     .set("background", "rgba(30, 41, 59, 0.7)")
                     .set("border", "1px solid #334155")
                     .set("border-radius", "12px")
                     .set("padding", "20px")
-                    .set("transition", "all 0.3s ease")
-                    .set("cursor", "default");
+                    .set("transition", "transform 0.2s");
 
-            // Indicador de Salud
-            String color;
-            String bgColor;
-            if ("Óptimo".equalsIgnoreCase(cr.getEstadoSalud())) {
-                color = "#4ade80"; // Verde moderno
-                bgColor = "rgba(74, 222, 128, 0.1)";
-            } else if ("Advertencia".equalsIgnoreCase(cr.getEstadoSalud())) {
-                color = "#fbbf24"; // Amarillo/Naranja
-                bgColor = "rgba(251, 191, 36, 0.1)";
-            } else {
-                color = "#f87171"; // Rojo
-                bgColor = "rgba(248, 113, 113, 0.1)";
-            }
+            card.getElement().addEventListener("mouseenter", ev -> card.getStyle().set("border-color", "#64748b"));
+            card.getElement().addEventListener("mouseleave", ev -> card.getStyle().set("border-color", "#334155"));
 
-            Span badge = new Span(cr.getEstadoSalud().toUpperCase());
-            badge.getStyle()
-                    .set("background", bgColor)
-                    .set("color", color)
-                    .set("padding", "4px 12px")
-                    .set("border-radius", "20px")
-                    .set("font-size", "11px")
-                    .set("font-weight", "700")
-                    .set("letter-spacing", "0.5px")
-                    .set("border", "1px solid " + "rgba(255,255,255,0.1)");
+            HorizontalLayout cardTop = new HorizontalLayout();
+            cardTop.setWidthFull();
+            cardTop.setJustifyContentMode(JustifyContentMode.BETWEEN);
+            cardTop.setAlignItems(Alignment.CENTER);
 
-            H4 t = new H4(cr.getTitulo());
-            t.getStyle()
-                    .set("color", "#f8fafc")
-                    .set("margin", "15px 0 5px 0")
-                    .set("font-size", "18px");
+            String color = "Óptimo".equalsIgnoreCase(cr.getEstadoSalud()) ? "#4ade80" : "Advertencia".equalsIgnoreCase(cr.getEstadoSalud()) ? "#fbbf24" : "#f87171";
+            Span badge = new Span("● " + cr.getEstadoSalud().toUpperCase());
+            badge.getStyle().set("color", color).set("background", "rgba(15,23,42,0.6)").set("padding", "4px 10px").set("border-radius", "6px").set("font-size", "11px").set("font-weight", "bold").set("border", "1px solid " + color+"44");
 
-            Paragraph p = new Paragraph(cr.getObservacion());
-            p.getStyle()
-                    .set("color", "#94a3b8")
-                    .set("font-size", "14px")
-                    .set("line-height", "1.5")
-                    .set("margin", "0");
-
-            card.add(badge, t, p);
-
-            // Simular hover suave en Java (opcional pero le da toque premium)
-            card.getElement().addEventListener("mouseenter", e -> {
-                card.getStyle().set("transform", "translateY(-4px)");
-                card.getStyle().set("box-shadow", "0 10px 20px -5px rgba(0, 0, 0, 0.4)");
-                card.getStyle().set("border", "1px solid #475569");
-            });
-            card.getElement().addEventListener("mouseleave", e -> {
-                card.getStyle().set("transform", "translateY(0)");
-                card.getStyle().set("box-shadow", "none");
-                card.getStyle().set("border", "1px solid #334155");
+            Button btnBorrar = new Button("🗑️");
+            btnBorrar.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+            btnBorrar.getStyle().set("cursor", "pointer").set("font-size", "14px").set("color", "#ef4444");
+            btnBorrar.addClickListener(e -> {
+                repo.eliminar(cr.getId());
+                actualizarGaleria();
+                Notification.show("Registro Borrado Permanente").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             });
 
+            cardTop.add(badge, btnBorrar);
+
+            H4 tituloInfo = new H4(cr.getTitulo());
+            tituloInfo.getStyle().set("color", "#f8fafc").set("margin", "15px 0 5px 0").set("line-height", "1.2");
+
+            Span pAutor = new Span("Ref: #" + cr.getId() + " - Por " + cr.getAutor());
+            pAutor.getStyle().set("color", "#64748b").set("font-size", "11px");
+
+            Div observacionWrapper = new Div();
+            observacionWrapper.setText(cr.getObservacion());
+
+            observacionWrapper.getStyle().set("color", "#94a3b8").set("font-size", "13px").set("line-height", "1.5").set("margin-top", "15px").set("white-space", "pre-wrap").set("background", "rgba(0,0,0,0.1)").set("padding", "10px").set("border-left", "2px solid " + color).set("border-radius", "4px");
+
+            Div bloqueDeCodigoHtml = new Div();
+            bloqueDeCodigoHtml.setText(cr.getSnippet());
+            bloqueDeCodigoHtml.getStyle().set("background", "#0f172a").set("color", "#4ade80").set("padding", "15px").set("border-radius", "8px").set("font-family", "'JetBrains Mono', monospace").set("font-size", "11px").set("white-space", "pre-wrap").set("max-height", "300px").set("overflow-y", "auto");
+
+            Details acordeonVisualizadorCodigo = new Details("Inspección de Fragmento Local", bloqueDeCodigoHtml);
+            acordeonVisualizadorCodigo.addThemeVariants(DetailsVariant.REVERSE, DetailsVariant.SMALL);
+            acordeonVisualizadorCodigo.getStyle().set("margin-top", "20px");
+
+            card.add(cardTop, tituloInfo, pAutor, observacionWrapper, acordeonVisualizadorCodigo);
             galeria.add(card);
         }
     }

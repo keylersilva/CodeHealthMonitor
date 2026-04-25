@@ -17,7 +17,7 @@ public class CodeReview {
         this.observacion = observacion;
     }
 
-    // Getters (necesarios para que Vaadin lea los datos)
+    public int getId() { return id; }
     public String getTitulo() { return titulo; }
     public String getAutor() { return autor; }
     public String getSnippet() { return snippet; }
